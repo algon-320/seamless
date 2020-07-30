@@ -1,62 +1,51 @@
 use crate::language::Language;
 use crate::{Type, Value};
-use anyhow::Result;
+use anyhow::{bail, Result};
+
+use super::{ffi_type_map, ffi_type_of, size_of};
+use libc::{c_char, c_void, size_t};
+use libffi::low::*;
 
 #[derive(Debug)]
 pub struct C;
 
-use libc::{c_char, c_void, size_t};
-
-fn size_of(ty: Type) -> usize {
-    match ty {
-        Type::Int32 => std::mem::size_of::<i32>(),
-        Type::Int64 => std::mem::size_of::<i64>(),
-        Type::Uint32 => std::mem::size_of::<u32>(),
-        Type::Uint64 => std::mem::size_of::<u64>(),
-        Type::Void => 0,
-    }
-}
-
 impl Language for C {
     fn call(&self, file: &str, func_name: &str, args: &[Value], ret_ty: Type) -> Result<Value> {
-        let lib = libloading::Library::new(file)?;
-        let bridge_func_name = format!("{}_bridge", func_name);
-        let args: Vec<_> = args
+        let args_data: Vec<_> = args
             .iter()
             .map(|arg| C.serialize(arg))
             .collect::<Result<_>>()?;
+        let arg_ptr: Vec<_> = args_data
+            .iter()
+            .map(|arg| arg.as_ptr() as *const c_void)
+            .collect();
 
-        let mut return_buf: Vec<_> = vec![0; size_of(ret_ty)];
-        type return_ptr_t = *mut c_void;
-        match args.len() {
-            0 => unsafe {
-                let func: libloading::Symbol<unsafe extern "C" fn(return_ptr_t) -> c_void> =
-                    lib.get(bridge_func_name.as_bytes())?;
-                func(return_buf.as_mut_ptr() as return_ptr_t)
-            },
-            1 => unsafe {
-                let func: libloading::Symbol<
-                    unsafe extern "C" fn(return_ptr_t, *const c_void) -> c_void,
-                > = lib.get(bridge_func_name.as_bytes())?;
-                func(
-                    return_buf.as_mut_ptr() as return_ptr_t,
-                    args[0].as_ptr() as *const c_void,
-                )
-            },
-            2 => unsafe {
-                let func: libloading::Symbol<
-                    unsafe extern "C" fn(return_ptr_t, *const c_void, *const c_void) -> c_void,
-                > = lib.get(bridge_func_name.as_bytes())?;
-                func(
-                    return_buf.as_mut_ptr() as return_ptr_t,
-                    args[0].as_ptr() as *const c_void,
-                    args[1].as_ptr() as *const c_void,
-                )
-            },
-            _ => panic!("too many arguments"),
+        let mut ret_buf = vec![0u8; size_of(ret_ty)];
+        unsafe {
+            let lib = libloading::Library::new(file)?;
+            let func: libloading::Symbol<unsafe extern "C" fn() -> c_void> =
+                lib.get(func_name.as_bytes())?;
+
+            let mut args: Vec<_> = args.iter().map(ffi_type_of).collect();
+            let mut cif: ffi_cif = Default::default();
+
+            prep_cif(
+                &mut cif,
+                ffi_abi_FFI_DEFAULT_ABI,
+                args.len(),
+                ffi_type_map(&ret_ty),
+                args.as_mut_ptr(),
+            )
+            .unwrap();
+
+            libffi::raw::ffi_call(
+                &mut cif as *mut ffi_cif,
+                Some(*CodePtr(*func as *mut _).as_safe_fun()),
+                ret_buf.as_mut_ptr() as *mut c_void,
+                arg_ptr.as_ptr() as *mut *mut c_void,
+            );
         };
-        let ret_val = C.deserialize(ret_ty, return_buf.as_ptr())?;
-        Ok(ret_val)
+        C.deserialize(ret_ty, ret_buf.as_ptr())
     }
 
     fn serialize(&self, value: &Value) -> Result<Vec<u8>> {

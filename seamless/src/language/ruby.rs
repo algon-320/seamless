@@ -9,7 +9,6 @@ use libc::{c_char, c_void, size_t};
 
 extern "C" {
     fn seamless_language_ruby_init();
-    fn seamless_language_ruby_init();
 }
 
 impl Language for Ruby {
