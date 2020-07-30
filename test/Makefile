@@ -1,7 +1,8 @@
 .PHONY: run-client
-run-client: a.out librust_test.so libc_test.so
+run-client: a.out use librust_test.so libc_test.so
 	cargo build
 	LD_LIBRARY_PATH=. ./a.out
+	LD_LIBRARY_PATH=. ./use
 
 .PHONY: run-server
 run-server: server librust_test.so libc_test.so
@@ -19,6 +20,9 @@ libseamless.so: ../seamless-dylib/src/lib.rs
 a.out: use.c libseamless.so
 	gcc use.c -L. -lseamless
 
+use: use.rs libseamless.so
+	rustc use.rs -L. -lseamless
+
 librust_test.so: rust_test.rs
 	rustc rust_test.rs
 
@@ -28,6 +32,7 @@ libc_test.so: c_test.c
 .PHONY: clean
 clean:
 	-rm a.out
+	-rm use
 	-rm libseamless.so
 	-rm libc_test.so
 	-rm librust_test.so

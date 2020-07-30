@@ -23,6 +23,15 @@
                     "Int32"
                 ],
                 "return_type": "Int64"
+            },
+            "many_args": {
+                "argument_type": [
+                    "Int32",
+                    "Uint64",
+                    "Int64",
+                    "Uint64"
+                ],
+                "return_type": "Void"
             }
         }
     }

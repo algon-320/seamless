@@ -47,6 +47,20 @@ void call_fib()
     }
     printf("received return = %ld\n", *(int64_t *)return_buff);
 }
+void call_many_args()
+{
+    printf("---------------- call_many_args --------------\n");
+    char return_buff[8] = {0};
+    int32_t a = 1;
+    uint32_t b = 2;
+    int64_t c = 3;
+    uint64_t d = 4;
+    void *argv[] = {(void *)&a, (void *)&b, (void *)&c, (void *)&d};
+    if (foreign_call("localhost", "C", "Rust", "librust_test.so", "many_args", return_buff, 8, argv, 4) != 0)
+    {
+        printf("something wrong was happend\n");
+    }
+}
 
 void call_remote_fib()
 {
@@ -63,8 +77,14 @@ void call_remote_fib()
 
 int main(void)
 {
+    // C function
     call_my_func();
     call_my_func2();
+
+    // Rust function
     call_fib();
+    call_many_args();
+
+    // Remote function
     call_remote_fib();
 }

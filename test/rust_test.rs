@@ -8,3 +8,8 @@ extern "C" fn fib(n: i32) -> i64 {
         fib(n - 1) + fib(n - 2)
     }
 }
+
+#[no_mangle]
+extern "C" fn many_args(a: i32, b: u32, c: i64, d: u64) {
+    println!("a = {}, b = {}, c = {}, d = {}", a, b, c, d);
+}
