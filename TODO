@@ -1,0 +1,5 @@
+* native endian やめる
+* BigInt対応
+* 他言語対応
+* bridge自動生成
+* JSONファイルのパスを設定可能にする

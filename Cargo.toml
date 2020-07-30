@@ -1,0 +1,7 @@
+[workspace]
+
+members = [
+  "seamless",
+  "seamless-dylib",
+  "seamless-server",
+]

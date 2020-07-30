@@ -1,0 +1,29 @@
+{
+    "C": {
+        "libc_test.so": {
+            "my_func": {
+                "argument_type": [
+                    "Int32"
+                ],
+                "return_type": "Void"
+            },
+            "my_func2": {
+                "argument_type": [
+                    "Int32",
+                    "Int64"
+                ],
+                "return_type": "Int64"
+            }
+        }
+    },
+    "Rust": {
+        "librust_test.so": {
+            "fib": {
+                "argument_type": [
+                    "Int32"
+                ],
+                "return_type": "Int64"
+            }
+        }
+    }
+}
