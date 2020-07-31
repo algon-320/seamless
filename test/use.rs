@@ -24,7 +24,7 @@ fn main() {
     ];
     if unsafe {
         foreign_call(
-            std::ptr::null(), // local
+            std::ptr::null(), // local call
             "Rust\0".as_ptr(),
             "C\0".as_ptr(),
             "libc_test.so\0".as_ptr(),
