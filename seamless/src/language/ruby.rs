@@ -33,8 +33,8 @@ impl Language for Ruby {
                 let args: Vec<_> = args
                     .iter()
                     .map(|arg| {
-                        let mut buf = vec![0; Ruby.size_of(type_of(&arg))];
-                        Ruby.serialize(&arg, buf.as_mut_ptr())?;
+                        let mut buf = vec![0u8; Ruby.size_of(type_of(&arg))];
+                        Ruby.serialize(&arg, buf.as_mut_ptr() as *mut _)?;
                         Ok(buf)
                     })
                     .collect::<Result<_>>()?;
@@ -45,7 +45,7 @@ impl Language for Ruby {
 
                 let tmp: VALUE =
                     seamless_ruby_call(func_name.as_ptr(), argv.len() as c_int, argv.as_ptr());
-                ret = Ruby.deserialize(ret_ty, tmp as *const u8)?;
+                ret = Ruby.deserialize(ret_ty, &tmp as *const _ as *const _)?;
             }
             seamless_ruby_finalize();
         }
@@ -59,7 +59,7 @@ impl Language for Ruby {
         }
     }
 
-    fn serialize(&self, value: &Value, bytes: *mut u8) -> Result<()> {
+    fn serialize(&self, value: &Value, bytes: *mut c_void) -> Result<()> {
         let bytes = bytes as VALUE;
         match value {
             Value::Int32(v) => {
@@ -89,7 +89,7 @@ impl Language for Ruby {
         }
     }
 
-    fn deserialize(&self, ty: Type, bytes: *const u8) -> Result<Value> {
+    fn deserialize(&self, ty: Type, bytes: *const c_void) -> Result<Value> {
         let bytes = bytes as VALUE;
         match ty {
             Type::Int32 => {

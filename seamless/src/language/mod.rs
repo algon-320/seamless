@@ -1,5 +1,6 @@
 use crate::{Type, Value};
 use anyhow::{anyhow, Result};
+use std::ffi::c_void;
 
 mod c;
 mod ruby;
@@ -8,8 +9,8 @@ mod rust;
 pub trait Language {
     fn call(&self, file: &str, func_name: &str, args: &[Value], ret_ty: Type) -> Result<Value>;
     fn size_of(&self, ty: Type) -> usize;
-    fn serialize(&self, value: &Value, bytes: *mut u8) -> Result<()>;
-    fn deserialize(&self, ty: Type, bytes: *const u8) -> Result<Value>;
+    fn serialize(&self, value: &Value, bytes: *mut c_void) -> Result<()>;
+    fn deserialize(&self, ty: Type, bytes: *const c_void) -> Result<Value>;
 }
 
 pub fn from_name(name: &str) -> Result<&'static dyn Language> {

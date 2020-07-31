@@ -63,13 +63,14 @@ pub struct RemoteFunction {
 }
 
 pub fn remote_call(
-    host: &str,
+    host: &std::net::SocketAddr,
     caller_lang_name: &str,
     callee_lang_name: &str,
     file: &str,
     func_name: &str,
     args: &[*const libc::c_void],
-) -> Result<Box<[u8]>> {
+    return_buf: &mut [u8],
+) -> Result<()> {
     let caller_lang = language::from_name(caller_lang_name)?;
 
     let sig = || -> Result<Signature> {
@@ -85,11 +86,15 @@ pub fn remote_call(
     if args.len() < sig.argument_type.len() {
         bail!("too few arguments");
     }
+    if return_buf.len() < caller_lang.size_of(sig.return_type) {
+        bail!("return buffer too small");
+    }
+
     let args: Vec<_> = sig
         .argument_type
         .into_iter()
         .zip(args.iter())
-        .map(|(ty, argv)| caller_lang.deserialize(ty, (*argv) as *const u8))
+        .map(|(ty, argv)| caller_lang.deserialize(ty, (*argv) as *const _))
         .collect::<Result<_>>()?;
 
     let function = RemoteFunction {
@@ -147,18 +152,14 @@ pub fn remote_call(
                 }
             }
             stream.shutdown(Shutdown::Both).unwrap();
-            let res: Result<Value, String> = serde_cbor::from_slice(&bytes)?;
-            res
+            serde_cbor::from_slice::<Result<Value, String>>(&bytes)?
         }
         Err(e) => bail!("Failed to connect: {}", e),
     }
     .map_err(|e| anyhow!(e))?;
 
-    {
-        let mut buf = vec![0; caller_lang.size_of(type_of(&val))];
-        caller_lang.serialize(&val, buf.as_mut_ptr())?;
-        Ok(buf.into_boxed_slice())
-    }
+    caller_lang.serialize(&val, return_buf.as_mut_ptr() as *mut _)?;
+    Ok(())
 }
 
 pub fn local_call(
@@ -167,7 +168,8 @@ pub fn local_call(
     file: &str,
     func_name: &str,
     args: &[*const libc::c_void],
-) -> Result<Box<[u8]>> {
+    return_buf: &mut [u8],
+) -> Result<()> {
     let caller_lang = language::from_name(caller_lang_name)?;
     let callee_lang = language::from_name(callee_lang_name)?;
 
@@ -185,25 +187,18 @@ pub fn local_call(
     if args.len() < sig.argument_type.len() {
         bail!("too few arguments");
     }
+    if return_buf.len() < caller_lang.size_of(sig.return_type) {
+        bail!("return buffer too small");
+    }
+
     let args: Vec<_> = sig
         .argument_type
         .into_iter()
         .zip(args.iter())
-        .map(|(ty, argv)| caller_lang.deserialize(ty, (*argv) as *const u8))
+        .map(|(ty, argv)| caller_lang.deserialize(ty, (*argv) as *const _))
         .collect::<Result<_>>()?;
     let ret = callee_lang.call(file, func_name, &args, sig.return_type)?;
 
-    {
-        let mut buf = vec![0; caller_lang.size_of(type_of(&ret))];
-        caller_lang.serialize(&ret, buf.as_mut_ptr())?;
-        Ok(buf.into_boxed_slice())
-    }
-}
-
-pub fn is_localhost(host: &str) -> bool {
-    if host == "localhost" {
-        true
-    } else {
-        false
-    }
+    caller_lang.serialize(&ret, return_buf.as_mut_ptr() as *mut _)?;
+    Ok(())
 }

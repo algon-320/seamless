@@ -14,8 +14,8 @@ impl Language for C {
         let args_data: Vec<_> = args
             .iter()
             .map(|arg| {
-                let mut buf = vec![0; C.size_of(type_of(arg))];
-                C.serialize(arg, buf.as_mut_ptr())?;
+                let mut buf = vec![0u8; C.size_of(type_of(arg))];
+                C.serialize(arg, buf.as_mut_ptr() as *mut _)?;
                 Ok(buf)
             })
             .collect::<Result<_>>()?;
@@ -49,19 +49,23 @@ impl Language for C {
                 arg_ptr.as_ptr() as *mut *mut c_void,
             );
         };
-        C.deserialize(ret_ty, ret_buf.as_ptr())
+        C.deserialize(ret_ty, ret_buf.as_ptr() as *const _)
     }
 
     fn size_of(&self, ty: Type) -> usize {
         size_of(ty)
     }
 
-    fn serialize(&self, value: &Value, bytes: *mut u8) -> Result<()> {
+    fn serialize(&self, value: &Value, bytes: *mut c_void) -> Result<()> {
         macro_rules! ser_primitive_integer {
             ($v:expr, $T:ty) => {{
                 let b = <$T>::to_ne_bytes(*$v);
                 unsafe {
-                    std::ptr::copy_nonoverlapping(b.as_ptr(), bytes, C.size_of(type_of(value)))
+                    std::ptr::copy_nonoverlapping(
+                        b.as_ptr(),
+                        bytes as *mut u8,
+                        C.size_of(type_of(value)),
+                    )
                 };
                 Ok(())
             }};
@@ -75,11 +79,11 @@ impl Language for C {
         }
     }
 
-    fn deserialize(&self, ty: Type, bytes: *const u8) -> Result<Value> {
+    fn deserialize(&self, ty: Type, bytes: *const c_void) -> Result<Value> {
         use std::convert::TryInto;
         macro_rules! deser_primitive_integer {
             ($T:ty, $p:path) => {{
-                let bytes = unsafe { std::slice::from_raw_parts(bytes, size_of(ty)) };
+                let bytes = unsafe { std::slice::from_raw_parts(bytes as *const u8, size_of(ty)) };
                 Ok($p(<$T>::from_ne_bytes(bytes.try_into().unwrap())))
             }};
         }
