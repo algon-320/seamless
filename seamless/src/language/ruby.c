@@ -1,26 +1,42 @@
 #include "ruby.h"
 #include "ruby/encoding.h"
 
-void seamless_language_ruby_init()
+void seamless_ruby_init(void)
 {
+    RUBY_INIT_STACK;
     ruby_init();
     ruby_init_loadpath();
-    rb_enc_find_index("encdb"); // encodingライブラリの初期化
+    rb_enc_find_index("encdb");
     rb_require("rubygems");
-    rb_require("./ruby_test");
 }
-
-void foo(VALUE x)
+void semaless_ruby_require(const char *file)
 {
-    VALUE module = rb_const_get(rb_cObject, rb_intern("Test"));
-    VALUE klass = rb_const_get(module, rb_intern("Foo"));
-    VALUE obj = rb_class_new_instance(0, NULL, klass);
-    rb_funcall(obj, rb_intern("foo"), 1, x);
+    rb_require(file);
+}
+void seamless_ruby_finalize(void)
+{
+    ruby_finalize();
 }
 
-// int main()
-// {
-//     init();
-//     // foo(INT2FIX(12345));
-//     foo(rb_str_new2("hello"));
-// }
+VALUE seamless_ruby_int2fix(int x)
+{
+    return INT2FIX(x);
+}
+VALUE seamless_ruby_long2fix(long x)
+{
+    return LONG2FIX(x);
+}
+int seamless_ruby_num2int(VALUE num)
+{
+    return NUM2INT(num);
+}
+long seamless_ruby_num2long(VALUE num)
+{
+    return NUM2LONG(num);
+}
+
+#include <stdio.h>
+VALUE seamless_ruby_call(const char *func_name, int argc, const VALUE *argv)
+{
+    return rb_funcall2(rb_cObject, rb_intern(func_name), argc, argv);
+}

@@ -1,7 +1,3 @@
-module Test
-    class Foo
-        def foo(a)
-            puts "foo: this is a Ruby function a = #{a}"
-        end
-    end
+def foo(a, b)
+    puts "foo: this is a Ruby function a = #{a}, b = #{b}"
 end

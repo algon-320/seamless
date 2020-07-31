@@ -34,5 +34,16 @@
                 "return_type": "Void"
             }
         }
+    },
+    "Ruby": {
+        "ruby_test.rb": {
+            "foo": {
+                "argument_type": [
+                    "Int32",
+                    "Int64"
+                ],
+                "return_type": "Void"
+            }
+        }
     }
 }

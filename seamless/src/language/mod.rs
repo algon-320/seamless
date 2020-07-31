@@ -7,7 +7,8 @@ mod rust;
 
 pub trait Language {
     fn call(&self, file: &str, func_name: &str, args: &[Value], ret_ty: Type) -> Result<Value>;
-    fn serialize(&self, value: &Value) -> Result<Vec<u8>>;
+    fn size_of(&self, ty: Type) -> usize;
+    fn serialize(&self, value: &Value, bytes: *mut u8) -> Result<()>;
     fn deserialize(&self, ty: Type, bytes: *const u8) -> Result<Value>;
 }
 

@@ -61,6 +61,18 @@ void call_many_args()
         printf("something wrong was happend\n");
     }
 }
+void call_foo()
+{
+    printf("---------------- call_foo --------------\n");
+    char return_buff[8] = {0};
+    int32_t a = 123;
+    int64_t b = 1000000000000;
+    void *argv[] = {&a, &b};
+    if (foreign_call("localhost", "C", "Ruby", "ruby_test.rb", "foo", return_buff, 8, argv, 2) != 0)
+    {
+        printf("something wrong was happend\n");
+    }
+}
 
 void call_remote_fib()
 {
@@ -84,6 +96,9 @@ int main(void)
     // Rust function
     call_fib();
     call_many_args();
+
+    // Ruby function
+    call_foo();
 
     // Remote function
     call_remote_fib();

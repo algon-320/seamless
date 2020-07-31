@@ -1,4 +1,4 @@
-use seamless::{anyhow, serde, serde_cbor, serde_derive, serde_json};
+use seamless::{anyhow, serde_cbor, serde_json};
 
 use std::io::{Read, Write};
 use std::net::{Shutdown, TcpListener, TcpStream};
@@ -6,7 +6,7 @@ use std::thread;
 
 use anyhow::{anyhow, bail, Result};
 
-use seamless::{RemoteFunction, Signature, Type, Value, CALLABLE_FUNCTIONS};
+use seamless::{RemoteFunction, Signature, Value, CALLABLE_FUNCTIONS};
 
 fn call(
     RemoteFunction {
@@ -88,9 +88,9 @@ fn handle_client(mut stream: TcpStream) -> Result<()> {
 }
 
 fn main() {
-    let port = 3333;
-    let listener = TcpListener::bind(format!("0.0.0.0:{}", port)).unwrap();
-    println!("Server listening on port {}", port);
+    const PORT: &str = "3333";
+    let listener = TcpListener::bind(format!("0.0.0.0:{}", PORT)).unwrap();
+    println!("Server listening on port {}", PORT);
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {

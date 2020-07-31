@@ -1,9 +1,9 @@
 use crate::language::Language;
-use crate::{Type, Value};
-use anyhow::{bail, Result};
+use crate::{type_of, Type, Value};
+use anyhow::Result;
 
 use super::{ffi_type_map, ffi_type_of, size_of};
-use libc::{c_char, c_void, size_t};
+use libc::c_void;
 use libffi::low::*;
 
 #[derive(Debug)]
@@ -13,7 +13,11 @@ impl Language for C {
     fn call(&self, file: &str, func_name: &str, args: &[Value], ret_ty: Type) -> Result<Value> {
         let args_data: Vec<_> = args
             .iter()
-            .map(|arg| C.serialize(arg))
+            .map(|arg| {
+                let mut buf = vec![0; C.size_of(type_of(arg))];
+                C.serialize(arg, buf.as_mut_ptr())?;
+                Ok(buf)
+            })
             .collect::<Result<_>>()?;
         let arg_ptr: Vec<_> = args_data
             .iter()
@@ -48,10 +52,18 @@ impl Language for C {
         C.deserialize(ret_ty, ret_buf.as_ptr())
     }
 
-    fn serialize(&self, value: &Value) -> Result<Vec<u8>> {
+    fn size_of(&self, ty: Type) -> usize {
+        size_of(ty)
+    }
+
+    fn serialize(&self, value: &Value, bytes: *mut u8) -> Result<()> {
         macro_rules! ser_primitive_integer {
             ($v:expr, $T:ty) => {{
-                Ok(<$T>::to_ne_bytes(*$v).to_vec())
+                let b = <$T>::to_ne_bytes(*$v);
+                unsafe {
+                    std::ptr::copy_nonoverlapping(b.as_ptr(), bytes, C.size_of(type_of(value)))
+                };
+                Ok(())
             }};
         }
         match value {
@@ -59,7 +71,7 @@ impl Language for C {
             Value::Int64(v) => ser_primitive_integer!(v, i64),
             Value::Uint32(v) => ser_primitive_integer!(v, u32),
             Value::Uint64(v) => ser_primitive_integer!(v, u64),
-            Value::Void => Ok(Vec::new()),
+            Value::Void => Ok(()),
         }
     }
 

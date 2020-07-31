@@ -28,6 +28,15 @@ pub enum Type {
     // BigInt,
     Void,
 }
+pub fn type_of(val: &Value) -> Type {
+    match val {
+        Value::Int32(_) => Type::Int32,
+        Value::Int64(_) => Type::Int64,
+        Value::Uint32(_) => Type::Uint32,
+        Value::Uint64(_) => Type::Uint64,
+        Value::Void => Type::Void,
+    }
+}
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Signature {
@@ -60,7 +69,7 @@ pub fn remote_call(
     file: &str,
     func_name: &str,
     args: &[*const libc::c_void],
-) -> Result<Vec<u8>> {
+) -> Result<Box<[u8]>> {
     let caller_lang = language::from_name(caller_lang_name)?;
 
     let sig = || -> Result<Signature> {
@@ -144,7 +153,12 @@ pub fn remote_call(
         Err(e) => bail!("Failed to connect: {}", e),
     }
     .map_err(|e| anyhow!(e))?;
-    caller_lang.serialize(&val)
+
+    {
+        let mut buf = vec![0; caller_lang.size_of(type_of(&val))];
+        caller_lang.serialize(&val, buf.as_mut_ptr())?;
+        Ok(buf.into_boxed_slice())
+    }
 }
 
 pub fn local_call(
@@ -153,7 +167,7 @@ pub fn local_call(
     file: &str,
     func_name: &str,
     args: &[*const libc::c_void],
-) -> Result<Vec<u8>> {
+) -> Result<Box<[u8]>> {
     let caller_lang = language::from_name(caller_lang_name)?;
     let callee_lang = language::from_name(callee_lang_name)?;
 
@@ -178,7 +192,12 @@ pub fn local_call(
         .map(|(ty, argv)| caller_lang.deserialize(ty, (*argv) as *const u8))
         .collect::<Result<_>>()?;
     let ret = callee_lang.call(file, func_name, &args, sig.return_type)?;
-    caller_lang.serialize(&ret)
+
+    {
+        let mut buf = vec![0; caller_lang.size_of(type_of(&ret))];
+        caller_lang.serialize(&ret, buf.as_mut_ptr())?;
+        Ok(buf.into_boxed_slice())
+    }
 }
 
 pub fn is_localhost(host: &str) -> bool {
