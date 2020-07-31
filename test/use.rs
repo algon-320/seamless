@@ -15,7 +15,7 @@ extern "C" {
 }
 
 fn main() {
-    println!("---------------- my_func2 from Rust ----------------");
+    println!("\n---------------- my_func2 from Rust ----------------");
 
     let mut ret = 0i64;
     let args = [

@@ -9,7 +9,7 @@ type VALUE = *mut c_void;
 extern "C" {
     fn seamless_ruby_init();
     fn semaless_ruby_require(filename: *const c_char);
-    fn seamless_ruby_finalize();
+    // fn seamless_ruby_finalize();
     fn seamless_ruby_call(func_name: *const c_char, argc: c_int, argv: *const VALUE) -> VALUE;
     fn seamless_ruby_int2fix(x: c_int) -> VALUE;
     fn seamless_ruby_long2fix(x: c_long) -> VALUE;
@@ -20,14 +20,22 @@ extern "C" {
 #[derive(Debug)]
 pub struct Ruby;
 
+lazy_static::lazy_static! {
+    static ref RUBY_INIT: () = {
+        unsafe {
+            seamless_ruby_init();
+        }
+    };
+}
+
 impl Language for Ruby {
     fn call(&self, file: &str, func_name: &str, args: &[Value], ret_ty: Type) -> Result<Value> {
+        lazy_static::initialize(&RUBY_INIT);
+
         let ret;
         unsafe {
             let file = CString::new(format!("./{}", file))?;
             let func_name = CString::new(func_name)?;
-
-            seamless_ruby_init();
             semaless_ruby_require(file.as_ptr());
             {
                 let args: Vec<_> = args
@@ -43,11 +51,12 @@ impl Language for Ruby {
                     .map(|arg| *(arg.as_ptr() as *const i64) as VALUE)
                     .collect();
 
-                let tmp: VALUE =
+                let ret_val: VALUE =
                     seamless_ruby_call(func_name.as_ptr(), argv.len() as c_int, argv.as_ptr());
-                ret = Ruby.deserialize(ret_ty, &tmp as *const _ as *const _)?;
+                ret = Ruby.deserialize(ret_ty, &ret_val as *const _ as *const _)?;
             }
-            seamless_ruby_finalize();
+            // TODO:
+            // seamless_ruby_finalize();
         }
         Ok(ret)
     }
@@ -90,14 +99,14 @@ impl Language for Ruby {
     }
 
     fn deserialize(&self, ty: Type, bytes: *const c_void) -> Result<Value> {
-        let bytes = bytes as VALUE;
+        let bytes = bytes as *const VALUE;
         match ty {
             Type::Int32 => {
-                let v = unsafe { seamless_ruby_num2int(bytes) };
+                let v = unsafe { seamless_ruby_num2int(*bytes) };
                 Ok(Value::Int32(v))
             }
             Type::Int64 => {
-                let v = unsafe { seamless_ruby_num2long(bytes) };
+                let v = unsafe { seamless_ruby_num2long(*bytes) };
                 Ok(Value::Int64(v))
             }
             Type::Void => Ok(Value::Void),

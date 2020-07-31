@@ -1,5 +1,5 @@
 use seamless::libc;
-use seamless::{local_call, remote_call};
+use seamless::{local, remote};
 use std::ffi::CStr;
 
 #[no_mangle]
@@ -25,10 +25,10 @@ extern "C" fn foreign_call(
             unsafe { std::slice::from_raw_parts_mut(return_buffer as *mut u8, return_buffer_size) };
 
         if is_local {
-            local_call(caller_lang_name, lang_name, file, func_name, argv, ret)
+            local::call(caller_lang_name, lang_name, file, func_name, argv, ret)
         } else {
             let host = unsafe { CStr::from_ptr(host).to_str()? };
-            remote_call(
+            remote::call(
                 &host.parse()?,
                 caller_lang_name,
                 lang_name,
@@ -42,7 +42,7 @@ extern "C" fn foreign_call(
     match result() {
         Ok(_) => 0,
         Err(e) => {
-            println!("foreign call error: {}", e);
+            eprintln!("foreign call error: {}", e);
             1
         }
     }

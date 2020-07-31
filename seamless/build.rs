@@ -34,6 +34,8 @@ fn build_ruby_binding() {
         .warnings(true)
         .flag("-Wall")
         .flag("-Wextra")
+        .flag("-g")
+        .flag("-O0")
         .include(include_dir1)
         .include(&include_dir2)
         .flag(&lib_dir)

@@ -1,5 +1,6 @@
 use crate::{Type, Value};
 use anyhow::{anyhow, Result};
+use libffi::low::*;
 use std::ffi::c_void;
 
 mod c;
@@ -31,8 +32,6 @@ fn size_of(ty: Type) -> usize {
         Type::Void => 0,
     }
 }
-
-use libffi::low::*;
 
 fn ffi_type_of(v: &Value) -> *mut ffi_type {
     unsafe {

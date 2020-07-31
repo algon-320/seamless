@@ -42,7 +42,19 @@
                     "Int32",
                     "Int64"
                 ],
-                "return_type": "Void"
+                "return_type": "Int64"
+            },
+            "sum": {
+                "argument_type": [
+                    "Int64",
+                    "Int64",
+                    "Int64",
+                    "Int64",
+                    "Int64",
+                    "Int64",
+                    "Int64"
+                ],
+                "return_type": "Int64"
             }
         }
     }
