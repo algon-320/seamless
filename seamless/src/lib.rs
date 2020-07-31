@@ -106,7 +106,7 @@ pub fn remote_call(
 
     let val = match TcpStream::connect(host) {
         Ok(mut stream) => {
-            println!("Successfully connected to server in port 3333");
+            println!("Successfully connected to server: {}", host);
 
             // 1. send length (big endian)
             stream.write_all(&usize::to_be_bytes(bytes.len())).unwrap();
