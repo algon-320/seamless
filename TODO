@@ -1,4 +1,0 @@
-* native endian やめる
-* BigInt対応
-* JSONファイルのパスを設定可能にする
-* remote callのstdio
